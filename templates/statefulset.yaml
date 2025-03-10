@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "{{ include "k8s-mariadb-chart.fullname" . }}-statefulset"
+  labels:
+    {{- include "k8s-mariadb-chart.labels" . | nindent 4 }}
+spec:
+  serviceName: "{{ include "k8s-mariadb-chart.fullname" . }}-service"
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "k8s-mariadb-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{ with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end -}}
+      labels:
+        {{- include "k8s-mariadb-chart.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      restartPolicy: Always
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - name: init-mariadb-primary
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/scripts/init-mariadb-primary.sh"]
+        env:
+        {{- include "k8s-mariadb-chart.initContainerEnv" . | nindent 8 }}
+        volumeMounts:
+        - name: mariadb-config
+          mountPath: /etc/mysql/conf.d
+        - name: initdb
+          mountPath: /docker-entrypoint-initdb.d
+        - name: scripts-configmap
+          mountPath: /scripts
+        - name: cnf-configmap
+          mountPath: /mnt/cnf-configmap
+        - name: sql-configmap
+          mountPath: /mnt/sql-configmap
+      - name: init-mariadb-replica
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/scripts/init-mariadb-replica.sh"]
+        env:
+        {{- include "k8s-mariadb-chart.initContainerEnv" . | nindent 8 }}
+        volumeMounts:
+        - name: mariadb-config
+          mountPath: /etc/mysql/conf.d
+        - name: initdb
+          mountPath: /docker-entrypoint-initdb.d
+        - name: scripts-configmap
+          mountPath: /scripts
+        - name: cnf-configmap
+          mountPath: /mnt/cnf-configmap
+        - name: sql-configmap
+          mountPath: /mnt/sql-configmap
+      containers:
+      - name: mariadb
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: mariadb-port
+          containerPort: 3306
+          protocol: TCP
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: "{{ include "k8s-mariadb-chart.getSecretName" . }}"
+              key: mariadb-root-password
+        - name: MYSQL_INITDB_SKIP_TZINFO
+          value: "1"
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/lib/mysql
+        - name: mariadb-config
+          mountPath: /etc/mysql/conf.d
+        - name: initdb
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mariadb-config
+        emptyDir: {}
+      - name: initdb
+        emptyDir: {}
+      - name: scripts-configmap
+        configMap:
+          name: "{{ include "k8s-mariadb-chart.fullname" . }}-scripts-configmap"
+          defaultMode: 0550
+      - name: cnf-configmap
+        configMap:
+          name: "{{ include "k8s-mariadb-chart.fullname" . }}-cnf-configmap"
+          defaultMode: 0550
+      - name: sql-configmap
+        configMap:
+          name: "{{ include "k8s-mariadb-chart.fullname" . }}-sql-configmap"
+          defaultMode: 0550
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      storageClassName: {{ .Values.datadir.storageClass }}
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: {{ .Values.datadir.resources.storage }}

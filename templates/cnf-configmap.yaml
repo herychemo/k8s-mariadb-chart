@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ include "k8s-mariadb-chart.fullname" . }}-cnf-configmap"
+  labels:
+    {{- include "k8s-mariadb-chart.labels" . | nindent 4 }}
+data:
+  primary.cnf:  |
+    [mariadb]
+    log-bin
+    log-basename=mariadb
+    binlog-format=mixed
+    server_id=${SERVER_ID}
+
+  replica.cnf:  |
+    [mariadb]
+    log-basename=mariadb
+    server_id=${SERVER_ID}

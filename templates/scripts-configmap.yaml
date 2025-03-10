@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ include "k8s-mariadb-chart.fullname" . }}-scripts-configmap"
+  labels:
+    {{- include "k8s-mariadb-chart.labels" . | nindent 4 }}
+data:
+  get-ordinal.sh: |
+    #!/bin/bash
+    set -e
+    [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
+    ordinal=${BASH_REMATCH[1]}
+    echo -n "$ordinal";
+
+  vars.ini: |
+    SERVER_ID_OFFSET
+    SERVER_ID
+    DATABASE_NAME
+    DATABASE_ROOT_USER_PASSWORD
+    DATABASE_REPLICATION_USER_USERNAME
+    DATABASE_REPLICATION_USER_PASSWORD
+    NAMESPACE
+    STATEFULSET_NAME
+    SVC_NAME
+
+  replace-vars.sh:  |
+    #!/bin/bash
+    set -e
+    scripts=`dirname "$0"`
+    ordinal=`$scripts/get-ordinal.sh`
+    SERVER_ID=$(($SERVER_ID_OFFSET + $ordinal))
+    cat $scripts/vars.ini | while read line
+    do
+      [ -z "$line" ] && continue
+      sed -i "s/\${${line}}/${!line}/g; " $1
+    done
+
+  init-mariadb-primary.sh:  |
+    #!/bin/bash
+    set -ex
+    scripts=`dirname "$0"`
+    ordinal=`$scripts/get-ordinal.sh`
+    [[ $ordinal -eq 0 ]] || exit 0
+    echo "Setting up primary."
+    rm -rf /etc/mysql/conf.d/server-replication.cnf /docker-entrypoint-initdb.d/primary.sql
+    cp /mnt/cnf-configmap/primary.cnf /etc/mysql/conf.d/server-replication.cnf
+    cp /mnt/sql-configmap/primary.sql /docker-entrypoint-initdb.d
+    $scripts/replace-vars.sh /etc/mysql/conf.d/server-replication.cnf
+    $scripts/replace-vars.sh /docker-entrypoint-initdb.d/primary.sql
+    chown -R mysql:mysql /docker-entrypoint-initdb.d/
+    chown -R mysql:mysql /etc/mysql/conf.d/
+
+  init-mariadb-replica.sh:  |
+    #!/bin/bash
+    set -ex
+    scripts=`dirname "$0"`
+    ordinal=`$scripts/get-ordinal.sh`
+    [[ $ordinal -ne 0 ]] || exit 0
+    echo "Setting up replica."
+    rm -rf /etc/mysql/conf.d/server-replication.cnf /docker-entrypoint-initdb.d/replica.sql
+    cp /mnt/cnf-configmap/replica.cnf /etc/mysql/conf.d/server-replication.cnf
+    cp /mnt/sql-configmap/replica.sql /docker-entrypoint-initdb.d
+    $scripts/replace-vars.sh /etc/mysql/conf.d/server-replication.cnf
+    $scripts/replace-vars.sh /docker-entrypoint-initdb.d/replica.sql
+    chown -R mysql:mysql /docker-entrypoint-initdb.d/
+    chown -R mysql:mysql /etc/mysql/conf.d/
