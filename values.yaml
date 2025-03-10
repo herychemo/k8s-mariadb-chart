@@ -1,38 +1,57 @@
 # Default values for k8s-mariadb-chart.
 
-# This is to override the chart name.
+# nameOverride is the chart base name to be used.
 nameOverride: ""
+
+# fullnameOverride is the chart final full name to be used.
 fullnameOverride: ""
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+# replicaCount is the default number of replicas in the StatefulSet.
 replicaCount: 3
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+# image defines values related to the image to be used.
 image:
+  # repository is the container repository name to use.
   repository: mariadb
-  # This sets the pull policy for images.
+  # pullPolicy is the pull policy for images.
   pullPolicy: Always
-  # Overrides the image tag whose default is the chart appVersion.
+  # tag is the image tag to use, when empty the chart appVersion is used.
   tag: ""
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+# imagePullSecrets is used for pulling an image from a private repository.
 imagePullSecrets: []
 
+# datadir defines values related to database data directory.
 datadir:
+  # storageClass is the storage class to be used for the datadir pvc.
   storageClass: hostpath
-  resources:
-    storage: 80Mi
+  # storage is the requested amount of memory for the datadir pvc.
+  storage: 80Mi
 
+# serverIdOffset is used to generate final server id for mariaDB replication.
 serverIdOffset: 700
+# applicationDatabaseName is the name of the default auto-generated database.
 applicationDatabaseName: application
 
+# service defines values related to generated database service.
 service:
+  # port is the service port where the database will be exposed.
   port: 3306
 
+# auth defines values related to secrets.
 auth:
+  # secretName is the existing secret name where to retrieve auth keys.
+  #   if secretName is defined, it is expected to contain:
+  #   * mariadb-root-password
+  #   * mariadb-replication-username
+  #   * mariadb-replication-password
+  #   if secretName is not given, a secret with given auth keys will be created by the chart.
   secretName: ""
+  # rootPassword is the password defined for db root user, only used when secretName not given.
   rootPassword: "30OCev&/#~1j"
+  # replicationUserUsername is the user set for replication, only used when secretName not given.
   replicationUserUsername: "replication_user"
+  # replicationUserPassword is the pass set for replication, only used when secretName not given.
   replicationUserPassword: "repliPa55."
 
 # This is for setting Kubernetes Annotations to a Pod.
