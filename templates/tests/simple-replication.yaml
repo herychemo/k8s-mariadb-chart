@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "mariadb.fullname" . }}-simple-replication"
+  labels:
+    {{- include "mariadb.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: mariadb
+      image: mariadb
+      command: ['bash']
+      args:
+      - "-c"
+      - |
+        set -e
+        echo "$DB_CMD" | sed 's/DB_INSTANCE/$1/g; s/SQL_CMD/$2/g; ' > dbCmd.sh
+
+        echo "Adding some test data on primary"
+        bash dbCmd.sh 0 "DROP TABLE IF EXISTS ___helm_test_data"
+        bash dbCmd.sh 0 "CREATE TABLE ___helm_test_data(id INTEGER, val CHAR(10));"
+        bash dbCmd.sh 0 "INSERT INTO ___helm_test_data VALUES (1, 'One'), (2, 'Two');"
+        bash dbCmd.sh 0 "SELECT * FROM ___helm_test_data;"
+
+        sleep 2s;   # wait a bit to wait for replication.
+        echo "Testing replication."
+        for i in {2..$(REPLICA_COUNT)}
+        do
+          DB_INSTANCE=$(( i - 1 ))
+          echo "Testing instance: $DB_INSTANCE"
+          bash dbCmd.sh $DB_INSTANCE "SELECT * FROM ___helm_test_data;"
+          echo "Instance $DB_INSTANCE; ok."
+        done;
+
+        # Clean up
+        bash dbCmd.sh 0 "DROP TABLE IF EXISTS ___helm_test_data"
+        echo "Done."
+      env:
+      {{- include "mariadb.testsEnvVars" . | nindent 6 }}
+  restartPolicy: Never
