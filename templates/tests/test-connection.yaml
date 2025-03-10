@@ -8,8 +8,33 @@ metadata:
     "helm.sh/hook": test
 spec:
   containers:
-    - name: wget
-      image: busybox
-      command: ['wget']
-      args: ['{{ include "mariadb.fullname" . }}:{{ .Values.service.port }}']
+    - name: mariadb
+      image: mariadb
+      command: ['bash']
+      args:
+      - "-c"
+      - |
+        set -e
+        $DB_CMD -e "show tables;"
+        echo "Done."
+      env:
+      - name: DB_SS
+        value: "{{ include "mariadb.fullname" . }}-statefulset"
+      - name: DB_SVC
+        value: "{{ include "mariadb.fullname" . }}-service"
+      - name: DB_NS
+        value: "{{ .Release.Namespace }}"
+      - name: DB_INSTANCE
+        value: "0"
+      - name: DB_HOST
+        value: $(DB_SS)-$(DB_INSTANCE).$(DB_SVC).$(DB_NS).svc.cluster.local
+      - name: DB_USER
+        value: root
+      - name: DB_PASS
+        valueFrom:
+          secretKeyRef:
+            name: "{{ include "mariadb.getSecretName" . }}"
+            key: mariadb-root-password
+      - name: DB_CMD
+        value: mariadb --host $(DB_HOST) --port {{ .Values.service.port }} -u$(DB_USER) --password=$(DB_PASS) {{ .Values.applicationDatabaseName }}
   restartPolicy: Never
