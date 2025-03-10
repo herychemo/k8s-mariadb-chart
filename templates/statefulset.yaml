@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: "{{ include "k8s-mariadb-chart.fullname" . }}-statefulset"
+  name: "{{ include "mariadb.fullname" . }}-statefulset"
   labels:
-    {{- include "k8s-mariadb-chart.labels" . | nindent 4 }}
+    {{- include "mariadb.labels" . | nindent 4 }}
 spec:
-  serviceName: "{{ include "k8s-mariadb-chart.fullname" . }}-service"
+  serviceName: "{{ include "mariadb.fullname" . }}-service"
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "k8s-mariadb-chart.selectorLabels" . | nindent 6 }}
+      {{- include "mariadb.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{ with .Values.podAnnotations }}
@@ -17,7 +17,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end -}}
       labels:
-        {{- include "k8s-mariadb-chart.labels" . | nindent 8 }}
+        {{- include "mariadb.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -33,7 +33,7 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/scripts/init-mariadb-primary.sh"]
         env:
-        {{- include "k8s-mariadb-chart.initContainerEnv" . | nindent 8 }}
+        {{- include "mariadb.initContainerEnv" . | nindent 8 }}
         volumeMounts:
         - name: mariadb-config
           mountPath: /etc/mysql/conf.d
@@ -50,7 +50,7 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["/scripts/init-mariadb-replica.sh"]
         env:
-        {{- include "k8s-mariadb-chart.initContainerEnv" . | nindent 8 }}
+        {{- include "mariadb.initContainerEnv" . | nindent 8 }}
         volumeMounts:
         - name: mariadb-config
           mountPath: /etc/mysql/conf.d
@@ -74,7 +74,7 @@ spec:
         - name: MARIADB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: "{{ include "k8s-mariadb-chart.getSecretName" . }}"
+              name: "{{ include "mariadb.getSecretName" . }}"
               key: mariadb-root-password
         - name: MYSQL_INITDB_SKIP_TZINFO
           value: "1"
@@ -92,15 +92,15 @@ spec:
         emptyDir: {}
       - name: scripts-configmap
         configMap:
-          name: "{{ include "k8s-mariadb-chart.fullname" . }}-scripts-configmap"
+          name: "{{ include "mariadb.fullname" . }}-scripts-configmap"
           defaultMode: 0550
       - name: cnf-configmap
         configMap:
-          name: "{{ include "k8s-mariadb-chart.fullname" . }}-cnf-configmap"
+          name: "{{ include "mariadb.fullname" . }}-cnf-configmap"
           defaultMode: 0550
       - name: sql-configmap
         configMap:
-          name: "{{ include "k8s-mariadb-chart.fullname" . }}-sql-configmap"
+          name: "{{ include "mariadb.fullname" . }}-sql-configmap"
           defaultMode: 0550
   volumeClaimTemplates:
   - metadata:

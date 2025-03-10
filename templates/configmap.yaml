@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{ include "k8s-mariadb-chart.fullname" . }}-configmap"
+  name: "{{ include "mariadb.fullname" . }}-configmap"
   labels:
-    {{- include "k8s-mariadb-chart.labels" . | nindent 4 }}
+    {{- include "mariadb.labels" . | nindent 4 }}
 data:
   server-id-offset: {{ .Values.serverIdOffset | quote }}
   database-name: {{ .Values.applicationDatabaseName }}

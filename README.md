@@ -1,4 +1,4 @@
-# k8s-mariadb-chart
+# mariadb
 Simple MariaDB chart with replication support, for practice and reference purposes.
 
 ## Additional Notes:

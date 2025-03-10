@@ -1,4 +1,4 @@
-# Default values for k8s-mariadb-chart.
+# Default values for mariadb.
 
 # nameOverride is the chart base name to be used.
 nameOverride: ""

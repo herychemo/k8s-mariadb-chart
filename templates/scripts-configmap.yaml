@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{ include "k8s-mariadb-chart.fullname" . }}-scripts-configmap"
+  name: "{{ include "mariadb.fullname" . }}-scripts-configmap"
   labels:
-    {{- include "k8s-mariadb-chart.labels" . | nindent 4 }}
+    {{- include "mariadb.labels" . | nindent 4 }}
 data:
   get-ordinal.sh: |
     #!/bin/bash
