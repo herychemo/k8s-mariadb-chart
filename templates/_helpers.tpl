@@ -104,3 +104,28 @@ Prints the init containers required environment vars.
       name: "{{ include "mariadb.getSecretName" . }}"
       key: mariadb-replication-password
 {{- end -}}
+
+{{/*
+Prints the test env vars.
+*/}}
+{{- define "mariadb.testsEnvVars" -}}
+- name: REPLICA_COUNT
+  value: "{{ .Values.replicaCount }}"
+- name: DB_SS
+  value: "{{ include "mariadb.fullname" . }}-statefulset"
+- name: DB_SVC
+  value: "{{ include "mariadb.fullname" . }}-service"
+- name: DB_NS
+  value: "{{ .Release.Namespace }}"
+- name: DB_HOST
+  value: $(DB_SS)-DB_INSTANCE.$(DB_SVC).$(DB_NS).svc.cluster.local
+- name: DB_USER
+  value: root
+- name: DB_PASS
+  valueFrom:
+    secretKeyRef:
+      name: "{{ include "mariadb.getSecretName" . }}"
+      key: mariadb-root-password
+- name: DB_CMD
+  value: mariadb --host $(DB_HOST) --port {{ .Values.service.port }} -u$(DB_USER) --password="$(DB_PASS)" {{ .Values.applicationDatabaseName }} -e "SQL_CMD"
+{{- end -}}

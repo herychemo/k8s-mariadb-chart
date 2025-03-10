@@ -15,26 +15,15 @@ spec:
       - "-c"
       - |
         set -e
-        $DB_CMD -e "show tables;"
+        echo "$DB_CMD" | sed 's/DB_INSTANCE/$1/g; s/SQL_CMD/$2/g; ' > dbCmd.sh
+        for i in {1..$(REPLICA_COUNT)}
+        do
+          DB_INSTANCE=$(( i - 1 ))
+          echo "Testing connection on instance: $DB_INSTANCE"
+          bash dbCmd.sh $DB_INSTANCE "show tables;"
+          echo "Instance $DB_INSTANCE; ok."
+        done;
         echo "Done."
       env:
-      - name: DB_SS
-        value: "{{ include "mariadb.fullname" . }}-statefulset"
-      - name: DB_SVC
-        value: "{{ include "mariadb.fullname" . }}-service"
-      - name: DB_NS
-        value: "{{ .Release.Namespace }}"
-      - name: DB_INSTANCE
-        value: "0"
-      - name: DB_HOST
-        value: $(DB_SS)-$(DB_INSTANCE).$(DB_SVC).$(DB_NS).svc.cluster.local
-      - name: DB_USER
-        value: root
-      - name: DB_PASS
-        valueFrom:
-          secretKeyRef:
-            name: "{{ include "mariadb.getSecretName" . }}"
-            key: mariadb-root-password
-      - name: DB_CMD
-        value: mariadb --host $(DB_HOST) --port {{ .Values.service.port }} -u$(DB_USER) --password=$(DB_PASS) {{ .Values.applicationDatabaseName }}
+      {{- include "mariadb.testsEnvVars" . | nindent 6 }}
   restartPolicy: Never
