@@ -13,7 +13,7 @@ helm upgrade --install gr-sample-app .
 ### Test
 
 ```shell
-# Make sure to wait until all pods are running before.
+# Make sure to wait until all pods are running.
 kubectl get all
 
 # Run tests
