@@ -129,3 +129,13 @@ Prints the test env vars.
 - name: DB_CMD
   value: mariadb --host $(DB_HOST) --port {{ .Values.service.port }} -u$(DB_USER) --password="$(DB_PASS)" {{ .Values.applicationDatabaseName }} -e "SQL_CMD"
 {{- end -}}
+
+{{/*
+Returns the FQN of given instance.
+*/}}
+{{- define "mariadb.getInstanceHost" -}}
+{{- $top := index . 0 -}}
+{{- $instance := index . 1 "instance" -}}
+{{- $fullname := include "mariadb.fullname" $top -}}
+{{- print $fullname -}}-statefulset-{{- print $instance -}}.{{- print $fullname -}}-service.{{ $top.Release.Namespace }}.svc.cluster.local
+{{- end -}}

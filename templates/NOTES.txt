@@ -1,2 +1,10 @@
 {{ .Chart.Name }} - {{ .Chart.Description }}
-{{ .Release.Name }} Deployed.
+Release name: {{ .Release.Name }}
+
+Write to:
+* {{ include "mariadb.getInstanceHost" (list . (dict "instance" 0)) }}
+
+Read from:
+{{- range $i, $e := untilStep 1 (int .Values.replicaCount) 1 }}
+* {{ include "mariadb.getInstanceHost" (list $ (dict "instance" .)) }}
+{{- end -}}
