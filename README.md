@@ -20,7 +20,7 @@ kubectl get all
 helm test gr-sample-app
 ```
 
-The added test validate:
+The added tests validate:
 * Simple database service connection.
 * Replication of sample data written in primary instance (0), to replica instances (1+).
 
